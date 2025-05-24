@@ -11,6 +11,29 @@ RUN npm run build
 # Stage 2: Python Backend
 FROM python:3.10-slim
 
+# Instalar dependencias del sistema necesarias
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Variables de entorno (se recomienda configurarlas en la plataforma de despliegue)
@@ -34,30 +57,21 @@ ENV PYTHONUNBUFFERED=1 \
     # URL base para archivos estáticos
     STATIC_FILE_BASE_URL="http://localhost:8000"
 
-# Instalar dependencias del sistema necesarias
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    ffmpeg \
-    libsm6 \
-    libxext6 \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
 # Crear directorios para datos persistentes y logs ANTES de copiar el código
 RUN mkdir -p /app/persistent_data/agent_workspaces \
              /app/persistent_data/agent_logs \
              /app/persistent_data/database
 
-# Copiar archivo de requerimientos de Python e instalar dependencias
-# Asume que requirements.txt está en la raíz del contexto de build
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copiar y instalar dependencias de Python
+COPY pyproject.toml .
+RUN pip install --no-cache-dir poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-dev --no-interaction --no-ansi
 
 # Instalar playwright y sus dependencias
 RUN playwright install --with-deps chromium
 
-# Copiar todo el código de la aplicación al directorio /app
+# Copiar el código de la aplicación
 COPY . .
 
 # Copiar el frontend construido desde el stage anterior
