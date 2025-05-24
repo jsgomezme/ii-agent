@@ -37,6 +37,11 @@ ENV PYTHONUNBUFFERED=1 \
 # Instalar dependencias del sistema necesarias
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Crear directorios para datos persistentes y logs ANTES de copiar el código
@@ -48,6 +53,9 @@ RUN mkdir -p /app/persistent_data/agent_workspaces \
 # Asume que requirements.txt está en la raíz del contexto de build
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Instalar playwright y sus dependencias
+RUN playwright install --with-deps chromium
 
 # Copiar todo el código de la aplicación al directorio /app
 COPY . .
